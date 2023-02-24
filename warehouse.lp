@@ -1,20 +1,16 @@
-#const maxtime=5.
+#const maxtime=20.
 #const m=4.
 #const n=5.
 coordX(0..m-1).
 coordY(0..n-1).
 
-%verticalDirection(no;so).
-%horizontalDirection(ea;we).
-%direction(D) :- verticalDirection(D).
-%direction(D) :- horizontalDirection(D).
 direction(no;so;ea;we).
 
 time(0..maxtime).
 
 box(1, 1, 1).
 box(2, 3, 1).
-%box(3, 3, 3).
+box(3, 2, 4).
 
 drawer(1, 2).
 
@@ -30,19 +26,9 @@ coveredByDrawer(X, Y) :- cell(X, Y), drawer(X, Y).
 coveredByDrawer(X, Y) :- cell(X, Y), drawer(X-1, Y).
 coveredByDrawer(X, Y) :- cell(X, Y), drawer(X, Y-1).
 coveredByDrawer(X, Y) :- cell(X, Y), drawer(X-1, Y-1).
-% La cella di uscita e' sempre "libera"
-%free(m, n-1, Ti) :- time(Ti).
-
-% Non posso avere una cella libera e contemporaneamente occupata (a meno che non sia la cella di uscita)
-% Nel caso in cui sia la cella di uscita, mi basta controllare la coordinata X, perche' nessun'altra cella condivide la stessa X della cella di uscita
-% La coordinata Y invece e' condivisa da tutta la riga piu' in alto
-%:- notFree(X, Y, Ti), not boxIn(_, X, Y, Ti), time(Ti). 
-
-%validLength(L, D) :- coordY(L), verticalDirection(D).
-%validLength(L, D) :- coordX(L), horizontalDirection(D).
 
 % Mosse disponibili al tempo Ti
-validMoves(I, D, L, Ti) :- box(I, _, _), direction(D), %validLength(L, D),
+validMoves(I, D, L, Ti) :- box(I, _, _), direction(D),
                         time(Ti),
                         Ti < maxtime, 
                         not notFree(XNew, YNew, Ti), 
@@ -52,7 +38,7 @@ validMoves(I, D, L, Ti) :- box(I, _, _), direction(D), %validLength(L, D),
                         pushPosition(XPush, YPush, X, Y, D),
                         not blockedPath(X, Y, XNew, YNew, Ti).
 
-%%%% Controllo che in mezzo al cammino non ci sia nulla
+% Controllo che in mezzo al cammino non ci sia nulla
 blockedPath(XStart, YStart, XEnd, YEnd, Ti) :- notFree(X, Y, Ti), dest(X, Y, XStart, YStart, L1, D), dest(XEnd, YEnd, X, Y, L2, D), dest(XEnd, YEnd, XStart, YStart, L1+L2, D).
 
 % In ogni istante esattamente una mossa
@@ -100,10 +86,7 @@ unfinished(I, Ti) :- time(Ti), not boxIn(I, X, Y, Ti), box(I, _, _), X = m, Y = 
 % Non puo' essere che al tempo maxTime esista una box in posizione non finale
 :- unfinished(I, maxtime), box(I, _, _).
 
+requiredMoves(M) :- M = #sum{T:move(I, D, L, T)}.
+#minimize {M:requiredMoves(M)}.
 
-%#show notFree/3.
-%#show boxIn/4.
-%#show goal/0.
-%#show north/5.
-%#show validMoves/4.
 #show move/4.
