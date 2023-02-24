@@ -1,82 +1,109 @@
 #const maxtime=5.
-#const m=3.
-#const n=3.
-coordX(1..m).
-coordY(1..n).
-direction(n).
-direction(s).
-direction(e).
-direction(w).
+#const m=4.
+#const n=5.
+coordX(0..m-1).
+coordY(0..n-1).
+
+%verticalDirection(no;so).
+%horizontalDirection(ea;we).
+%direction(D) :- verticalDirection(D).
+%direction(D) :- horizontalDirection(D).
+direction(no;so;ea;we).
+
 time(0..maxtime).
-boxNumber(1).
-box(1, 2, 1).
+
+box(1, 1, 1).
 box(2, 3, 1).
+%box(3, 3, 3).
+
+drawer(1, 2).
+
+boxIn(I, X, Y, 0) :- cell(X, Y), box(I, X, Y).
 
 cell(X, Y) :- coordX(X), coordY(Y).
-cell(m+1, 1).
-holds(free(X,Y), 0) :- cell(X, Y), not box(_, X, Y).
-holds(boxIn(I, X, Y), 0) :- cell(X, Y), box(I, X, Y).
+cell(m, n-1).
 
-fluent(boxIn(I, X, Y)) :- box(I, X, Y), cell(X, Y).
-%fluent(not_free(X, Y)) :- boxIn(I, X, Y), cell(X, Y).
-fluent(free(X, Y)) :- cell(X, Y).
+notFree(X, Y, Ti) :- cell(X, Y), time(Ti), boxIn(_, X, Y, Ti), X != m. 
+notFree(X, Y, Ti) :- cell(X, Y), time(Ti), coveredByDrawer(X, Y).
 
-%1{holds(F,T); holds(neg(F),T)}1 :- time(T), T <= maxtime, fluent(F).
+coveredByDrawer(X, Y) :- cell(X, Y), drawer(X, Y).
+coveredByDrawer(X, Y) :- cell(X, Y), drawer(X-1, Y).
+coveredByDrawer(X, Y) :- cell(X, Y), drawer(X, Y-1).
+coveredByDrawer(X, Y) :- cell(X, Y), drawer(X-1, Y-1).
+% La cella di uscita e' sempre "libera"
+%free(m, n-1, Ti) :- time(Ti).
 
-complement(Fl,neg(Fl)) :- fluent(Fl).
-complement(neg(Fl),Fl) :- fluent(Fl).
+% Non posso avere una cella libera e contemporaneamente occupata (a meno che non sia la cella di uscita)
+% Nel caso in cui sia la cella di uscita, mi basta controllare la coordinata X, perche' nessun'altra cella condivide la stessa X della cella di uscita
+% La coordinata Y invece e' condivisa da tutta la riga piu' in alto
+%:- notFree(X, Y, Ti), not boxIn(_, X, Y, Ti), time(Ti). 
 
-action(move(I, D, L)) :- box(I, _, _), direction(D), coordX(L).
-action(move(I, D, L)) :- box(I, _, _), direction(D), coordY(L).
+%validLength(L, D) :- coordY(L), verticalDirection(D).
+%validLength(L, D) :- coordX(L), horizontalDirection(D).
 
-exec(move(I, D, L), Ti) :- action(move(I, D, L)), time(Ti), 
-                            holds(free(XNew, YNew), Ti), 
-                            holds(boxIn(I, X, Y), Ti),
-                            holds(free(XPush, YPush), Ti), 
-                            dest(XNew, YNew, X, Y, L, D), 
-                            push_position(XPush, YPush, X, Y, D).
+% Mosse disponibili al tempo Ti
+validMoves(I, D, L, Ti) :- box(I, _, _), direction(D), %validLength(L, D),
+                        time(Ti),
+                        Ti < maxtime, 
+                        not notFree(XNew, YNew, Ti), 
+                        boxIn(I, X, Y, Ti),
+                        not notFree(XPush, YPush, Ti), 
+                        dest(XNew, YNew, X, Y, L, D),
+                        pushPosition(XPush, YPush, X, Y, D),
+                        not blockedPath(X, Y, XNew, YNew, Ti).
 
-% Lo spostamento dello scatolone I aggiorna la sua posizione corrente
-causes(move(I, D, L), boxIn(I, XNew, YNew)) :- box(I, _, _), cell(XNew, YNew).
-ok(move(I, D, L), boxIn(I, XNew, YNew), Ti) :- time(Ti), holds(boxIn(I, X, Y),Ti), dest(XNew, YNew, X, Y, L, D).
+%%%% Controllo che in mezzo al cammino non ci sia nulla
+blockedPath(XStart, YStart, XEnd, YEnd, Ti) :- notFree(X, Y, Ti), dest(X, Y, XStart, YStart, L1, D), dest(XEnd, YEnd, X, Y, L2, D), dest(XEnd, YEnd, XStart, YStart, L1+L2, D).
 
-causes(move(I, D, L), free(X, Y)) :- box(I, _, _), cell(X, Y).
-ok(move(I, D, L), free(X, Y), Ti) :- time(Ti), holds(boxIn(I, X, Y),Ti).
+% In ogni istante esattamente una mossa
+0{move(I, D, L, Ti):validMoves(I, D, L, Ti)}1 :- time(Ti), Ti < maxtime. % NB: cosi pero' puo' sprecare tempo 
 
-holds(Fl,Ti+1) :- time(Ti), fluent(Fl),
-        occ(Act,Ti), causes(Act,Fl),
-        ok(Act,Fl,Ti), exec(Act,Ti).
+boxIn(I, X, Y, Ti+1) :- time(Ti),
+                        Ti < maxtime,
+                        boxIn(I, X, Y, Ti), 
+                        not move(I, _, _, Ti).
+
+boxIn(I, XNew, YNew, Ti+1) :- time(Ti),
+                                Ti < maxtime,
+                                cell(XNew, YNew),
+                                boxIn(I, X, Y, Ti),
+                                dest(XNew, YNew, X, Y, L, D),
+                                move(I, D, L, Ti).
+
+
 
 % La cella (X1, Y1) e' sopra a (X2, Y2), con distanza L
-north(X1, Y1, X2, Y2, L) :- coordX(X), coordY(Y), north(X1, Y1, X, Y, L1), north(X, Y, X2, Y2, L2), L1+L2=L.
-north(X1, Y1, X2, Y2, 1) :- cell(X1, Y1), cell(X2, Y2), X1 = X2, Y1 = Y2-1.
+north(X1, Y1, X2, Y2, L) :- cell(X, Y), north(X1, Y1, X, Y, L1), north(X, Y, X2, Y2, L2), L1+L2=L.
+north(X1, Y1, X2, Y2, 1) :- cell(X1, Y1), cell(X2, Y2), X1 = X2, Y1 = Y2+1.
+
 % La cella (X1, Y1) e' in basso a (X2, Y2), con distanza L
 south(X1, Y1, X2, Y2, L) :- north(X2, Y2, X1, Y1, L).
+
 % La cella (X1, Y1) e' a destra di (X2, Y2), con distanza L
-east(X1, Y1, X2, Y2, L) :- coordX(X), coordY(Y), east(X1, Y1, X, Y, L1), east(X, Y, X2, Y2, L2), L1+L2=L.
+east(X1, Y1, X2, Y2, L) :- cell(X, Y), east(X1, Y1, X, Y, L1), east(X, Y, X2, Y2, L2), L1+L2=L.
 east(X1, Y1, X2, Y2, 1) :- cell(X1, Y1), cell(X2, Y2), Y1 = Y2, X1 = X2+1.
+
 % La cella (X1, Y1) e' direttamente a destra di (X2, Y2)
 west(X1, Y1, X2, Y2, L) :- east(X2, Y2, X1, Y1, L).
 
-dest(XNew, YNew, X, Y, L, n) :- north(XNew, YNew, X, Y, L).
-dest(XNew, YNew, X, Y, L, s) :- south(XNew, YNew, X, Y, L).
-dest(XNew, YNew, X, Y, L, e) :- east(XNew, YNew, X, Y, L).
-dest(XNew, YNew, X, Y, L, w) :- west(XNew, YNew, X, Y, L).
+dest(XNew, YNew, X, Y, L, no) :- north(XNew, YNew, X, Y, L).
+dest(XNew, YNew, X, Y, L, so) :- south(XNew, YNew, X, Y, L).
+dest(XNew, YNew, X, Y, L, ea) :- east(XNew, YNew, X, Y, L).
+dest(XNew, YNew, X, Y, L, we) :- west(XNew, YNew, X, Y, L).
 
-% (X1, Y1) e' la posizione per spingere una cassa in (X2, Y2) nella direzione D
-push_position(X1, Y1, X2, Y2, D) :- dest(X2, Y2, X1, Y1, 1, D).
-
-
-%move(I, L) :- boxIn(I, X, Y), free(XNew, YNew), east(XNew, YNew, X, Y, L).
-%boxIn(I, XNew, YNew) :- move(I, L), cell(XNew, YNew).
-%free(X, Y) :- move(I, L), boxIn(I, X, Y).
-
-%
-%%1{occ(Act,Ti):action(Act)}1 :- time(Ti), Ti < 5.
-%%:- occ(Act,Ti), action(Act), time(Ti), not exec(Act,Ti).
-%
-%goal :- boxIn(I, 4, 1): box(I, _, _).
-%:- not goal.
+% (X1, Y1) e' la posizione per spingere una cassa in (X2, Y2) nella direzione D (ovvero, (X2, Y2) deve essere nella direzione D rispetto a (X1, Y1)) e a distanza 1
+pushPosition(XPush, YPush, X, Y, D) :- dest(X, Y, XPush, YPush, 1, D).
 
 
-#show action/1.
+% Unfinished: la box I all'istante di tempo Ti non e' in posizione finale
+unfinished(I, Ti) :- time(Ti), not boxIn(I, X, Y, Ti), box(I, _, _), X = m, Y = n-1.
+% Non puo' essere che al tempo maxTime esista una box in posizione non finale
+:- unfinished(I, maxtime), box(I, _, _).
+
+
+%#show notFree/3.
+%#show boxIn/4.
+%#show goal/0.
+%#show north/5.
+%#show validMoves/4.
+#show move/4.
