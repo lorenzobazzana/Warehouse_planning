@@ -1,8 +1,8 @@
-#const maxtime=3.
+#const maxtime=5.
 #const m=4.
 #const n=4.
-coordX(1..4).
-coordY(1..4).
+coordX(0..m-1).
+coordY(0..n-1).
 
 verticalDirection(no;so).
 horizontalDirection(ea;we).
@@ -12,21 +12,21 @@ direction(no;so;ea;we).
 
 time(0..maxtime).
 
-box(1, 2, 1).
-box(2, 3, 1).
+box(1, 2, 2).
+%box(2, 3, 1).
 %box(3, 3, 3).
 
 boxIn(I, X, Y, 0) :- cell(X, Y), box(I, X, Y).
 
 cell(X, Y) :- coordX(X), coordY(Y).
-cell(m+1, 1).
+cell(m, n-1).
 
 free(X, Y, Ti) :- cell(X, Y), not boxIn(_, X, Y, Ti), time(Ti).
 % La cella di uscita e' sempre "libera"
-free(m+1, 1, Ti) :- time(Ti).
+free(m, n, Ti) :- time(Ti).
 
 % Non posso avere una cella libera e contemporaneamente occupata (a meno che non sia la cella di uscita)
-:- free(X, Y, Ti), boxIn(_, X, Y, Ti), time(Ti), X != m+1, Y != 1.
+:- free(X, Y, Ti), boxIn(_, X, Y, Ti), time(Ti), X != m, Y != n-1.
 
 validLength(L, D) :- coordY(L), verticalDirection(D).
 validLength(L, D) :- coordX(L), horizontalDirection(D).
@@ -61,7 +61,7 @@ boxIn(I, XNew, YNew, Ti+1) :- time(Ti),
 
 % La cella (X1, Y1) e' sopra a (X2, Y2), con distanza L
 north(X1, Y1, X2, Y2, L) :- cell(X, Y), north(X1, Y1, X, Y, L1), north(X, Y, X2, Y2, L2), L1+L2=L.
-north(X1, Y1, X2, Y2, 1) :- cell(X1, Y1), cell(X2, Y2), X1 = X2, Y1 = Y2-1.
+north(X1, Y1, X2, Y2, 1) :- cell(X1, Y1), cell(X2, Y2), X1 = X2, Y1 = Y2+1.
 
 % La cella (X1, Y1) e' in basso a (X2, Y2), con distanza L
 south(X1, Y1, X2, Y2, L) :- north(X2, Y2, X1, Y1, L).
@@ -87,7 +87,7 @@ pushPosition(XPush, YPush, X, Y, D) :- dest(X, Y, XPush, YPush, 1, D).
 
 %:- goal, not boxIn(I, m+1, 1, _):box(I, _, _).
 
-boxOk(Id) :- boxIn(Id, m+1, 1, Ti), time(Ti).
+boxOk(Id) :- boxIn(Id, m, n-1, Ti), time(Ti).
 goal :- boxOk(Id):box(Id, _, _).
 
 :- not goal.
@@ -98,7 +98,7 @@ goal :- boxOk(Id):box(Id, _, _).
 
 
 %#show free/3.
-%#show boxIn/4.
+#show boxIn/4.
 #show goal/0.
 %#show north/5.
 %#show validMoves/4.
