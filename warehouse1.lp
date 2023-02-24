@@ -4,8 +4,8 @@
 coordX(0..m-1).
 coordY(0..n-1).
 
-verticalDirection(no;so).
-horizontalDirection(ea;we).
+%verticalDirection(no;so).
+%horizontalDirection(ea;we).
 %direction(D) :- verticalDirection(D).
 %direction(D) :- horizontalDirection(D).
 direction(no;so;ea;we).
@@ -13,8 +13,8 @@ direction(no;so;ea;we).
 time(0..maxtime).
 
 box(1, 2, 2).
-%box(2, 3, 1).
-%box(3, 3, 3).
+box(2, 3, 1).
+box(3, 3, 3).
 
 boxIn(I, X, Y, 0) :- cell(X, Y), box(I, X, Y).
 
@@ -23,24 +23,29 @@ cell(m, n-1).
 
 free(X, Y, Ti) :- cell(X, Y), not boxIn(_, X, Y, Ti), time(Ti).
 % La cella di uscita e' sempre "libera"
-free(m, n, Ti) :- time(Ti).
+free(m, n-1, Ti) :- time(Ti).
 
 % Non posso avere una cella libera e contemporaneamente occupata (a meno che non sia la cella di uscita)
-:- free(X, Y, Ti), boxIn(_, X, Y, Ti), time(Ti), X != m, Y != n-1.
+% Nel caso in cui sia la cella di uscita, mi basta controllare la coordinata X, perche' nessun'altra cella condivide la stessa X della cella di uscita
+% La coordinata Y invece e' condivisa da tutta la riga piu' in alto
+:- free(X, Y, Ti), boxIn(_, X, Y, Ti), time(Ti), X != m. 
 
-validLength(L, D) :- coordY(L), verticalDirection(D).
-validLength(L, D) :- coordX(L), horizontalDirection(D).
+%validLength(L, D) :- coordY(L), verticalDirection(D).
+%validLength(L, D) :- coordX(L), horizontalDirection(D).
 
 % Mosse disponibili al tempo Ti
-validMoves(I, D, L, Ti) :- box(I, _, _), direction(D), validLength(L, D),
+validMoves(I, D, L, Ti) :- box(I, _, _), direction(D), %validLength(L, D),
                         time(Ti),
                         Ti < maxtime, 
                         free(XNew, YNew, Ti), 
                         boxIn(I, X, Y, Ti),
                         free(XPush, YPush, Ti), 
                         dest(XNew, YNew, X, Y, L, D),
-                        pushPosition(XPush, YPush, X, Y, D).
-%%%% NB: controllare che in mezzo non ci sia nulla
+                        pushPosition(XPush, YPush, X, Y, D),
+                        not blockedPath(X, Y, XNew, YNew, Ti).
+
+%%%% Controllo che in mezzo al cammino non ci sia nulla
+blockedPath(XStart, YStart, XEnd, YEnd, Ti) :- boxIn(I, X, Y, Ti), dest(X, Y, XStart, YStart, L1, D), dest(XEnd, YEnd, X, Y, L2, D), dest(XEnd, YEnd, XStart, YStart, L1+L2, D).
 
 % In ogni istante esattamente una mossa
 0{move(I, D, L, Ti):validMoves(I, D, L, Ti)}1 :- time(Ti), Ti < maxtime. % NB: cosi pero' puo' sprecare tempo 
@@ -82,24 +87,15 @@ dest(XNew, YNew, X, Y, L, we) :- west(XNew, YNew, X, Y, L).
 pushPosition(XPush, YPush, X, Y, D) :- dest(X, Y, XPush, YPush, 1, D).
 
 
-%goal :- {boxIn(I, m+1, 1, Ti):box(I, _, _)}, time(Ti).
-%:- not goal.
-
-%:- goal, not boxIn(I, m+1, 1, _):box(I, _, _).
-
-boxOk(Id) :- boxIn(Id, m, n-1, Ti), time(Ti).
-goal :- boxOk(Id):box(Id, _, _).
-
-:- not goal.
-
-%holds(L, T + 1) :- time(T), fluent(L),
-%        holds(L, T ), not holds(L1, T + 1),
-%        complement(L, L1).
+% Unfinished: la box I all'istante di tempo Ti non e' in posizione finale
+unfinished(I, Ti) :- time(Ti), not boxIn(I, X, Y, Ti), box(I, _, _), X = m, Y = n-1.
+% Non puo' essere che al tempo maxTime esista una box in posizione non finale
+:- unfinished(I, maxtime), box(I, _, _).
 
 
 %#show free/3.
-#show boxIn/4.
-#show goal/0.
+%#show boxIn/4.
+%#show goal/0.
 %#show north/5.
 %#show validMoves/4.
 #show move/4.
