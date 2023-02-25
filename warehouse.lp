@@ -1,4 +1,4 @@
-#const maxtime=10.
+#const maxtime=3.
 #const m=4.
 #const n=5.
 coordX(0..m-1).
@@ -41,7 +41,7 @@ validMoves(I, D, L, Ti) :- box(I, _, _), direction(D),
 % Controllo che in mezzo al cammino non ci sia nulla
 blockedPath(XStart, YStart, XEnd, YEnd, Ti) :- notFree(X, Y, Ti), dest(X, Y, XStart, YStart, L1, D), dest(XEnd, YEnd, X, Y, L2, D), dest(XEnd, YEnd, XStart, YStart, L1+L2, D).
 
-validMultipleMove(I, D, L, Ti) :- box(I, _, _), direction(D),
+validMultipleMoves(I, D, L, Ti) :- box(I, _, _), direction(D),
                                     time(Ti),
                                     Ti < maxtime,
                                     boxIn(I, X, Y, Ti), % La scatola che spostiamo e' in posizione (X,Y)
@@ -56,7 +56,7 @@ validMultipleMove(I, D, L, Ti) :- box(I, _, _), direction(D),
 blockedByDrawer(XStart, YStart, XEnd, YEnd) :- coveredByDrawer(X,Y), dest(X, Y, XStart, YStart, L1, D), dest(XEnd, YEnd, X, Y, L2, D), dest(XEnd, YEnd, XStart, YStart, L1+L2, D).
 
 % In ogni istante esattamente una mossa
-0{move(I, D, L, Ti):validMoves(I, D, L, Ti);multipleMove(I, D, L, Ti):validMultipleMove(I, D, L, Ti)}1 :- time(Ti), Ti < maxtime. 
+0{move(I, D, L, Ti):validMoves(I, D, L, Ti);move(I, D, L, Ti):validMultipleMoves(I, D, L, Ti)}1 :- time(Ti), Ti < maxtime. 
 
 
 
@@ -72,11 +72,12 @@ boxIn(I, XNew, YNew, Ti+1) :- time(Ti),
                                 cell(XNew, YNew),
                                 boxIn(I, X, Y, Ti),
                                 boxIn(I2, X2, Y2, Ti),
+                                I != I2,
                                 dest(X, Y, X2, Y2, M, D),
                                 dest(XNew, YNew, X, Y, N, D),
                                 M <= L,
                                 N = L-M+1,
-                                multipleMove(I2, D, L, Ti).
+                                move(I2, D, L, Ti).
 
 boxIn(I, X, Y, Ti+1) :- time(Ti),
                         Ti < maxtime,
@@ -88,9 +89,10 @@ pushedByAnotherBox(I, Ti) :- time(Ti),
                              boxIn(I, X, Y, Ti),
                              boxIn(I2, X2, Y2, Ti),
                              I != I2,
+                             X != m,
                              dest(X, Y, X2, Y2, M, D),
                              M <= L,
-                             multipleMove(I2, D, L, Ti).
+                             move(I2, D, L, Ti).
                              
 % La cella (X1, Y1) e' sopra a (X2, Y2), con distanza L
 north(X1, Y1, X2, Y2, L) :- cell(X, Y), north(X1, Y1, X, Y, L1), north(X, Y, X2, Y2, L2), L1+L2=L.
@@ -112,7 +114,7 @@ dest(XNew, YNew, X, Y, L, ea) :- east(XNew, YNew, X, Y, L).
 dest(XNew, YNew, X, Y, L, we) :- west(XNew, YNew, X, Y, L).
 
 % (X1, Y1) e' la posizione per spingere una cassa in (X2, Y2) nella direzione D (ovvero, (X2, Y2) deve essere nella direzione D rispetto a (X1, Y1)) e a distanza 1
-pushPosition(XPush, YPush, X, Y, D) :- dest(X, Y, XPush, YPush, 1, D).
+pushPosition(XPush, YPush, X, Y, D) :- dest(X, Y, XPush, YPush, 1, D), XPush != m.
 
 
 % Unfinished: la box I all'istante di tempo Ti non e' in posizione finale
@@ -124,7 +126,7 @@ unfinished(I, Ti) :- time(Ti), not boxIn(I, X, Y, Ti), box(I, _, _), X = m, Y = 
 %#minimize {M:requiredMoves(M)}.
 
 #show move/4.
-#show multipleMove/4.
+%#show multipleMove/4.
 %#show validMoves/4.
 %#show boxIn/4.
 %#show pushedByAnotherBox/2.
