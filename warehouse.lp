@@ -65,18 +65,20 @@ blockedByDrawer(XStart, YStart, XEnd, YEnd) :- coveredByDrawer(XEnd, YEnd), cell
 % In ogni istante almeno una mossa
 0{move(I, D, L, Ti):validMoves(I, D, L, Ti);move(I, D, L, Ti):validMultipleMoves(I, D, L, Ti)}1 :- time(Ti), Ti < maxtime. 
 
-collateralMove(I, D, N, Ti) :- moved(I2, D, L, Ti),
-                               boxIn(I2, X, Y, Ti),
-                               boxIn(I, X2, Y2, Ti),
-                               dest(X1, Y1, X, Y, L, D),
-                               dest(X2, Y2, X, Y, M, D),
-                               dest(XNew, YNew, X2, Y2, N, D),
-                               N = L-M+1.
-
 moved(I, D, L, Ti) :- move(I, D, L, Ti).
 moved(I, D, L, Ti) :- collateralMove(I, D, L, Ti).
 
-% Aggiornamento in caso di movimento diretto
+collateralMove(I, D, N, Ti) :- move(I2, D, L, Ti),
+                                boxIn(I2, X2, Y2, Ti),
+                                dest(X2Final, Y2Final, X2, Y2, L, D),
+                                boxIn(I, X, Y, Ti),
+                                dest(X, Y, X2, Y2, M, D),
+                                dest(XNew, YNew, X, Y, N, D),
+                                N = L-M+1+K,
+                                K = #count{I3:boxIn(I3, X3, Y3, Ti), dest(X3, Y3, X2, Y2, L3, D), L3 < M}.
+
+
+% Aggiornamento in caso di movimento
 boxIn(I, XNew, YNew, Ti+1) :- time(Ti),
                                 Ti < maxtime,
                                 cell(XNew, YNew),
@@ -89,11 +91,10 @@ boxIn(I, X, Y, Ti+1) :- time(Ti),
                         Ti < maxtime,
                         boxIn(I, X, Y, Ti), 
                         not move(I, _, _, Ti),
-                        not pushedByAnotherBox(I, Ti).
+                        not collateralMove(I, _, _, Ti).
 
-pushedByAnotherBox(I, Ti) :- collateralMove(I, _, _, Ti).
 
-:- boxIn(I1, X, Y, Ti), boxIn(I2, X, Y, Ti), time(Ti), coordX(X), coordY(Y), I1 != I2.
+%:- boxIn(I1, X, Y, Ti), boxIn(I2, X, Y, Ti), time(Ti), coordX(X), coordY(Y), I1 != I2.
                              
 % La cella (X1, Y1) e' sopra a (X2, Y2), con distanza L
 north(X1, Y1, X2, Y2, L) :- cell(X, Y), north(X1, Y1, X, Y, L1), north(X, Y, X2, Y2, L2), L1+L2=L.
@@ -123,8 +124,8 @@ unfinished(I, Ti) :- time(Ti), not boxIn(I, X, Y, Ti), box(I, _, _), X = m, Y = 
 % Non puo' essere che al tempo maxTime esista una box in posizione non finale
 :- unfinished(I, maxtime), box(I, _, _).
 
-%requiredMoves(M) :- M = #sum{T:move(I, D, L, T)}.
-%#minimize {M:requiredMoves(M)}.
+requiredMoves(M) :- M = #sum{T:move(I, D, L, T)}.
+#minimize {M:requiredMoves(M)}.
 
 %#show boxIn/4.
 %#show validMoves/4.
