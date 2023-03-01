@@ -1,5 +1,7 @@
-#const maxtime=3.
-#const m=4.
+%#include <incmode>.
+%#program time(maxTime).
+#const maxtime=10.
+#const m=6.
 #const n=5.
 coordX(0..m-1).
 coordY(0..n-1).
@@ -8,11 +10,12 @@ direction(no;so;ea;we).
 
 time(0..maxtime).
 
-box(1, 1, n-1).
-box(2, 2, n-1).
-%box(3, 2, 4).
+box(1, 1, 1).
+box(2, 3, 1).
+box(3, 4, 1).
 
-drawer(1, 2).
+drawer(2, 3).
+drawer(0,2).
 
 boxIn(I, X, Y, 0) :- cell(X, Y), box(I, X, Y).
 
@@ -47,52 +50,50 @@ validMultipleMoves(I, D, L, Ti) :- box(I, _, _), direction(D),
                                     boxIn(I, X, Y, Ti), % La scatola che spostiamo e' in posizione (X,Y)
                                     not notFree(XPush, YPush, Ti), % La posizione di spostamento e' libera
                                     pushPosition(XPush, YPush, X, Y, D),
-                                    not blockedByDrawer(X, Y, XNew, YNew), % Il percorso non e' bloccato da armadi
+                                    not blockedByDrawer(X, Y, XMax, YMax), % Il percorso non e' bloccato da armadi
                                     dest(X1, Y1, X, Y, L, D), % (XNew, YNew) e' destinazione di uno spostamento lungo L+K
-                                    dest(XNew, YNew, X1, Y1, K, D),
-                                    %conto le scatole nel mezzo (quelle che risiedono in una posizione di destinazione per uno spostamento di lunghezza L1 < L nella stessa direzione)
-                                    K = #count{I2:boxIn(I2, X2, Y2, Ti), I2 != I, dest(X2, Y2, X, Y, L1, D), L1 <= L}. 
+                                    dest(XMax, YMax, X1, Y1, K, D),
+                                    dest(XMax, YMax, X, Y, LMax, D), % Idealmente vogliamo LMax = L+K
+                                    LMax = L+K,
+                                    %conto le scatole nella stessa direzione (davanti a quella che sposto)
+                                    K = #count{I2:boxIn(I2, X2, Y2, Ti), I2 != I, dest(XMax, YMax, X2, Y2, L2, D), L2 < LMax}.
 
+% Uno spostamento e' bloccato da un armadio se c'e' un armadio in un punto intermedio o se il punto di arrivo e' coperto da un armadio
 blockedByDrawer(XStart, YStart, XEnd, YEnd) :- coveredByDrawer(X,Y), dest(X, Y, XStart, YStart, L1, D), dest(XEnd, YEnd, X, Y, L2, D), dest(XEnd, YEnd, XStart, YStart, L1+L2, D).
+blockedByDrawer(XStart, YStart, XEnd, YEnd) :- coveredByDrawer(XEnd, YEnd), cell(XStart, YStart).
 
-% In ogni istante esattamente una mossa
+% In ogni istante almeno una mossa
 0{move(I, D, L, Ti):validMoves(I, D, L, Ti);move(I, D, L, Ti):validMultipleMoves(I, D, L, Ti)}1 :- time(Ti), Ti < maxtime. 
 
+collateralMove(I, D, N, Ti) :- moved(I2, D, L, Ti),
+                               boxIn(I2, X, Y, Ti),
+                               boxIn(I, X2, Y2, Ti),
+                               dest(X1, Y1, X, Y, L, D),
+                               dest(X2, Y2, X, Y, M, D),
+                               dest(XNew, YNew, X2, Y2, N, D),
+                               N = L-M+1.
 
+moved(I, D, L, Ti) :- move(I, D, L, Ti).
+moved(I, D, L, Ti) :- collateralMove(I, D, L, Ti).
 
+% Aggiornamento in caso di movimento diretto
 boxIn(I, XNew, YNew, Ti+1) :- time(Ti),
                                 Ti < maxtime,
                                 cell(XNew, YNew),
                                 boxIn(I, X, Y, Ti),
                                 dest(XNew, YNew, X, Y, L, D),
-                                move(I, D, L, Ti).
+                                moved(I, D, L, Ti).
 
-boxIn(I, XNew, YNew, Ti+1) :- time(Ti),
-                                Ti < maxtime,
-                                cell(XNew, YNew),
-                                boxIn(I, X, Y, Ti),
-                                boxIn(I2, X2, Y2, Ti),
-                                I != I2,
-                                dest(X, Y, X2, Y2, M, D),
-                                dest(XNew, YNew, X, Y, N, D),
-                                M <= L,
-                                N = L-M+1,
-                                move(I2, D, L, Ti).
-
+% Mantenimento della posizione all'istante successivo
 boxIn(I, X, Y, Ti+1) :- time(Ti),
                         Ti < maxtime,
                         boxIn(I, X, Y, Ti), 
                         not move(I, _, _, Ti),
                         not pushedByAnotherBox(I, Ti).
 
-pushedByAnotherBox(I, Ti) :- time(Ti),
-                             boxIn(I, X, Y, Ti),
-                             boxIn(I2, X2, Y2, Ti),
-                             I != I2,
-                             X != m,
-                             dest(X, Y, X2, Y2, M, D),
-                             M <= L,
-                             move(I2, D, L, Ti).
+pushedByAnotherBox(I, Ti) :- collateralMove(I, _, _, Ti).
+
+:- boxIn(I1, X, Y, Ti), boxIn(I2, X, Y, Ti), time(Ti), coordX(X), coordY(Y), I1 != I2.
                              
 % La cella (X1, Y1) e' sopra a (X2, Y2), con distanza L
 north(X1, Y1, X2, Y2, L) :- cell(X, Y), north(X1, Y1, X, Y, L1), north(X, Y, X2, Y2, L2), L1+L2=L.
@@ -125,8 +126,8 @@ unfinished(I, Ti) :- time(Ti), not boxIn(I, X, Y, Ti), box(I, _, _), X = m, Y = 
 %requiredMoves(M) :- M = #sum{T:move(I, D, L, T)}.
 %#minimize {M:requiredMoves(M)}.
 
-#show move/4.
-%#show multipleMove/4.
-%#show validMoves/4.
 %#show boxIn/4.
-%#show pushedByAnotherBox/2.
+%#show validMoves/4.
+%#show validMultipleMoves/4.
+%#show collateralMove/4.
+#show move/4.
