@@ -1,10 +1,10 @@
 int: m;
 int: n;
-m=5;
+m=6;
 n=5;
 
 int: maxtime;
-maxtime = 4;
+maxtime = 6;
 int: boxNumber;
 boxNumber = 2;
 int: drawerNumber;
@@ -12,44 +12,52 @@ drawerNumber = 2;
 array[1..boxNumber, 0..maxtime, 0..1] of var 0..max(m,n): boxes;
 %array[1..m, 1..n, 1..maxtime] of var 0..2: cells;
 array[1..drawerNumber, 0..1] of 0..max(m,n): drawers;
-drawers = array2d(1..drawerNumber, 0..1, [|2, 2 | 0,0 |]);
+drawers = array2d(1..drawerNumber, 0..1, [|0, 2 | 4,2 |]);
 
 array[0..maxtime] of var 0..boxNumber: moves;
 
 
 constraint
-  boxes[1, 0, 0] = 4 /\
-  boxes[1, 0, 1] = 3;
+  boxes[1, 0, 0] = 1 /\
+  boxes[1, 0, 1] = 1;
   
 constraint
   boxes[2, 0, 0] = 4 /\
   boxes[2, 0, 1] = 1;
+
+%constraint
+%  boxes[3, 0, 0] = 4 /\
+%  boxes[3, 0, 1] = 1;
     
 
 predicate freePath(1..boxNumber: movedBox, var 0..max(m,n): start, var 0..max(m,n): end, 0..maxtime: time, 0..1: coord) = 
     if coord = 0
     then
         forall(pos in min(start, end)..max(start, end))(
-            freeCell(movedBox, pos, boxes[movedBox, time, 1], time)
+            freeFromDrawers(pos, boxes[movedBox, time, 1])
         )
     else
         forall(pos in min(start, end)..max(start, end))(
-            freeCell(movedBox, boxes[movedBox, time, 0], pos, time)
+            freeFromDrawers(boxes[movedBox, time, 0], pos)
         )
     endif;
 
-predicate freeCell(1..boxNumber: movedBox, var 0..max(m,n): cellX, var 0..max(m,n): cellY, 0..maxtime: time) = 
+predicate freeCell(var 0..max(m,n): cellX, var 0..max(m,n): cellY, 0..maxtime: time) = 
     (cellX = m /\ cellY = n-1) \/ 
-    (not exists(box in 1..boxNumber)(
-        box != movedBox /\ 
+    (
+        not exists(box in 1..boxNumber)(
         boxes[box, time, 0] = cellX /\ 
         boxes[box, time, 1] = cellY
         ) /\
-    freeFromDrawers(cellX, cellY, time)
+        freeFromDrawers(cellX, cellY) /\
+        cellX < m /\
+        cellX >= 0 /\
+        cellY >= 0 /\
+        cellY < n
     )
 ;
 
-predicate freeFromDrawers(var 0..max(m,n): cellX, var 0..max(m,n): cellY, 0..maxtime: time) = 
+predicate freeFromDrawers(var 0..max(m,n): cellX, var 0..max(m,n): cellY) = 
     not exists(drawer in 1..drawerNumber)(
         (drawers[drawer, 0] = cellX /\ drawers[drawer, 1] = cellY) \/
         (drawers[drawer, 0] = (cellX-1) /\ drawers[drawer, 1] = cellY) \/
@@ -60,31 +68,89 @@ predicate freeFromDrawers(var 0..max(m,n): cellX, var 0..max(m,n): cellY, 0..max
 
 function var int: sign(var int: x) = if x < 0 then -1 else 1 endif;
 
+predicate moved(1..boxNumber: box, 1..maxtime: t, 0..1: coord) = boxes[box, t-1, coord] != boxes[box, t, coord];
+
+predicate freePushPosition(1..boxNumber: box, 0..1: coord, 0..maxtime-1: t) = 
+    if coord = 0
+    then
+        let {var 0..max(m,n): xPush = boxes[box, t, 0] + sign(boxes[box, t, 0] - boxes[box, t+1, 0]); var 0..max(m,n): yPush = boxes[box, t, 1]} in
+        xPush != m /\ 
+        freeCell(xPush, yPush, t)
+    else
+        let {var 0..max(m,n): xPush = boxes[box, t, 0]; var 0..max(m,n): yPush = boxes[box, t, 1] + sign(boxes[box, t, 1] - boxes[box, t+1, 1])} in
+        freeCell(xPush, yPush, t)
+    endif;
+
+predicate precedes(1..boxNumber: b1, 1..boxNumber: b2, 0..1: coord, 0..maxtime: t) =  % b1 precede b2 nella direzione di spostamento
+    let {0..1: otherCoord = (coord+1) mod 2} in
+    (boxes[b1, t, otherCoord] = boxes[b2, t, otherCoord]) /\
+    if sign(boxes[b1, t+1, coord] - boxes[b1, t, coord]) = 1
+    then
+        boxes[b2, t, coord] > boxes[b1, t, coord]
+    else
+        boxes[b2, t, coord] < boxes[b1, t, coord]
+    endif;
 
 % Inertia
+%constraint
+%  forall(box in 1..boxNumber)(
+%    forall(t in 1..maxtime)(
+%      moves[t] != box -> (boxes[box, t, 0] = boxes[box, t-1, 0] /\ boxes[box, t, 1] = boxes[box, t-1, 1])
+%    )
+%  )
+%;
+
 constraint
-  forall(box in 1..boxNumber)(
     forall(t in 1..maxtime)(
-      moves[t] != box -> (boxes[box, t, 0] = boxes[box, t-1, 0] /\ boxes[box, t, 1] = boxes[box, t-1, 1])
+        forall(box in 1..boxNumber)(
+            moves[t] = box -> (moved(box, t, 0) \/ moved(box, t, 1))
+        )
     )
-  )
 ;
- 
+
+predicate movementConstraint(1..boxNumber: box, 1..maxtime: t, 0..1: coord) =
+    let {0..1: otherCoord = (coord+1) mod 2} in
+    not moved(box, t, otherCoord) /\
+    freePath(box, boxes[box, t-1, coord], boxes[box, t, coord], t-1, coord) /\
+    (
+        (freePushPosition(box, coord, t-1) /\ moves[t] = box) \/
+        (
+            exists(b2 in 1..boxNumber)(
+                b2 != box /\
+                moves[t] = b2 /\
+                precedes(b2, box, coord, t-1) /\
+                sameDirection(b2, box, coord, t) /\
+                fullPath(min(boxes[b2, t, coord], boxes[box, t, coord]), max(boxes[b2, t, coord], boxes[box, t, coord]), coord, boxes[box, t, otherCoord], t)
+            )
+        )
+    );
+
+
+predicate sameDirection(1..boxNumber: b1, 1..boxNumber: b2, 0..1: coord, 1..maxtime: t) = 
+    sign(boxes[b1, t, coord] - boxes[b1, t-1, coord]) = sign(boxes[b2, t, coord] - boxes[b2, t-1, coord]);
+
+predicate fullPath(var 0..max(m,n): start, var 0..max(m,n): end, 0..1: coord, var 0..max(m,n): fixedCoord, 1..maxtime: t) = 
+    if coord = 0
+    then 
+        not exists(x in start..end)(
+            freeCell(x, fixedCoord, t) /\ x != m
+        )
+    else
+        not exists(y in start..end)(
+            freeCell(fixedCoord, y, t)
+        )
+    endif;
+
+
 constraint
     forall(box in 1..boxNumber)(
         forall(t in 1..maxtime)(
-            if(boxes[box, t, 0] != boxes[box, t-1, 0]) % se la X e' differente...
+            if(moved(box, t, 0)) % se la X e' differente...
             then
-                boxes[box, t, 1] = boxes[box, t-1, 1] /\% la Y deve essere la stessa (solo movimenti orizzontali)
-                freePath(box, boxes[box, t-1, 0], boxes[box, t, 0], t-1, 0) /\% movimento scatola singola (controllo che in mezzo non ci sia nulla)
-                freeCell(box, boxes[box, t-1, 0] + sign(boxes[box, t-1, 0] - boxes[box, t, 0]), boxes[box, t-1, 1], t-1) /\
-                moves[t] = box
-            elseif(boxes[box, t, 1] != boxes[box, t-1, 1]) % altrimenti se la Y e' differente...
+                movementConstraint(box, t, 0)
+            elseif(moved(box, t, 1)) % altrimenti se la Y e' differente...
             then
-                boxes[box, t, 0]= boxes[box, t-1, 0] /\ % la X deve essere la stessa (solo movimenti verticali)
-                freePath(box, boxes[box, t-1, 1], boxes[box, t, 1], t-1, 1) /\
-                freeCell(box, boxes[box, t-1, 0], boxes[box, t-1, 1] + sign(boxes[box, t-1, 1] - boxes[box, t, 1]), t-1) /\
-                moves[t] = box
+                movementConstraint(box, t, 1)
             else
               true
             endif
@@ -103,6 +169,25 @@ constraint
   )
 ;
 
+% Integrita' di ordine (non si possono scavalcare)
+constraint
+    forall(t in 0..maxtime-1)(
+        not exists(b1 in 1..boxNumber, b2 in 1..boxNumber)(
+            b1 != b2 /\
+            (
+                boxes[b1, t, 0] = boxes[b2, t, 0] /\ boxes[b1, t+1, 0] = boxes[b2, t+1, 0] /\
+                boxes[b1, t, 1] < boxes[b2, t, 1] /\
+                boxes[b1, t+1, 1] > boxes[b2, t+1, 1]  
+            ) \/
+            (
+                boxes[b1, t, 1] = boxes[b2, t, 1] /\ boxes[b1, t+1, 1] = boxes[b2, t+1, 1] /\
+                boxes[b1, t, 0] < boxes[b2, t, 0] /\
+                boxes[b1, t+1, 0] > boxes[b2, t+1, 0]  
+            )
+        )
+    )
+;
+
 constraint
   forall(box in 1..boxNumber)(
     forall(t in 0..maxtime)((
@@ -110,7 +195,7 @@ constraint
         boxes[box, t, 0] >= 0 /\
         boxes[box, t, 1] >= 0 /\
         boxes[box, t, 1] < n)
-        \/ (% il problema e' qua
+        \/ (
         boxes[box, t, 0] = m /\
         boxes[box, t, 1] = n-1)
     )
@@ -125,6 +210,41 @@ constraint
     )
 ;
 
+constraint
+    not exists(b1 in 1..boxNumber, b2 in 1..boxNumber)(
+        exists(t in 0..maxtime-1)(
+            (boxes[b1, t, 0] != m \/ boxes[b1, t, 1] != n-1) /\ (boxes[b1, t+1, 0] = m /\ boxes[b1, t+1, 1] = n-1) /\
+            (boxes[b2, t, 0] != m \/ boxes[b2, t, 1] != n-1) /\ (boxes[b2, t+1, 0] = m /\ boxes[b2, t+1, 1] = n-1) /\ b1 != b2
+        )
+    )
+;
+
+
+%constraint
+%    not exists(b1 in 1..boxNumber, b2 in 1..boxNumber)(
+%        exists(t in 1..maxtime)(
+%            b1 != b2 /\
+%            exists(coord in 0..1)(
+%                moved(b1, t, coord) /\ moved(b2, t, coord) /\
+%                sign(boxes[b1, t, coord] - boxes[b1, t-1, coord]) != sign(boxes[b2, t, coord] - boxes[b2, t-1, coord]) 
+%            )
+%        )
+%    )
+%;
+
+%constraint
+%    forall(b1 in 1..boxNumber)(
+%        forall(t in 1..maxtime)
+%            moves[t] = b1 ->
+%    )
+
+%constraint
+%    boxes[1, maxtime, 0] = m /\
+%    boxes[1, maxtime, 1] = n-1 /\
+%    boxes[2, maxtime, 0] = m-1 /\
+%    boxes[2, maxtime, 1] = n-1;
+    
+
 output ["{\(box), \(t), (\(boxes[box, t, 0]), \(boxes[box, t, 1]))}, " | t in 0..maxtime, box in 1..boxNumber] ++ ["\n"] ++ ["\(moves[t]), " | t in 0..maxtime]
 
 
@@ -136,3 +256,4 @@ output ["{\(box), \(t), (\(boxes[box, t, 0]), \(boxes[box, t, 1]))}, " | t in 0.
 % L = |x - x'|
 % M = |box[x] -x|
 % K = count(x..box[x])  
+
