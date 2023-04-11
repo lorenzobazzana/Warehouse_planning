@@ -10,11 +10,10 @@ boxNumber = 2;
 int: drawerNumber;
 drawerNumber = 2;
 array[1..boxNumber, 0..maxtime, 0..1] of var 0..max(m,n): boxes;
-%array[1..m, 1..n, 1..maxtime] of var 0..2: cells;
 array[1..drawerNumber, 0..1] of 0..max(m,n): drawers;
 drawers = array2d(1..drawerNumber, 0..1, [|0, 2 | 4,2 |]);
 
-array[0..maxtime] of var 0..boxNumber: moves;
+array[0..maxtime-1] of var 0..boxNumber: moves;
 
 
 constraint
@@ -91,19 +90,11 @@ predicate precedes(1..boxNumber: b1, 1..boxNumber: b2, 0..1: coord, 0..maxtime: 
         boxes[b2, t, coord] < boxes[b1, t, coord]
     endif;
 
-% Inertia
-%constraint
-%  forall(box in 1..boxNumber)(
-%    forall(t in 1..maxtime)(
-%      moves[t] != box -> (boxes[box, t, 0] = boxes[box, t-1, 0] /\ boxes[box, t, 1] = boxes[box, t-1, 1])
-%    )
-%  )
-%;
 
 constraint
     forall(t in 1..maxtime)(
         forall(box in 1..boxNumber)(
-            moves[t] = box -> (moved(box, t, 0) \/ moved(box, t, 1))
+            moves[t-1] = box -> (moved(box, t, 0) \/ moved(box, t, 1))
         )
     )
 ;
@@ -113,11 +104,11 @@ predicate movementConstraint(1..boxNumber: box, 1..maxtime: t, 0..1: coord) =
     not moved(box, t, otherCoord) /\
     freePath(box, boxes[box, t-1, coord], boxes[box, t, coord], t-1, coord) /\
     (
-        (freePushPosition(box, coord, t-1) /\ moves[t] = box) \/
+        (freePushPosition(box, coord, t-1) /\ moves[t-1] = box) \/
         (
             exists(b2 in 1..boxNumber)(
                 b2 != box /\
-                moves[t] = b2 /\
+                moves[t-1] = b2 /\
                 precedes(b2, box, coord, t-1) /\
                 sameDirection(b2, box, coord, t) /\
                 fullPath(min(boxes[b2, t, coord], boxes[box, t, coord]), max(boxes[b2, t, coord], boxes[box, t, coord]), coord, boxes[box, t, otherCoord], t)
@@ -219,41 +210,22 @@ constraint
     )
 ;
 
-
-%constraint
-%    not exists(b1 in 1..boxNumber, b2 in 1..boxNumber)(
-%        exists(t in 1..maxtime)(
-%            b1 != b2 /\
-%            exists(coord in 0..1)(
-%                moved(b1, t, coord) /\ moved(b2, t, coord) /\
-%                sign(boxes[b1, t, coord] - boxes[b1, t-1, coord]) != sign(boxes[b2, t, coord] - boxes[b2, t-1, coord]) 
-%            )
-%        )
-%    )
-%;
-
-%constraint
-%    forall(b1 in 1..boxNumber)(
-%        forall(t in 1..maxtime)
-%            moves[t] = b1 ->
-%    )
-
-%constraint
-%    boxes[1, maxtime, 0] = m /\
-%    boxes[1, maxtime, 1] = n-1 /\
-%    boxes[2, maxtime, 0] = m-1 /\
-%    boxes[2, maxtime, 1] = n-1;
     
 
-output ["{\(box), \(t), (\(boxes[box, t, 0]), \(boxes[box, t, 1]))}, " | t in 0..maxtime, box in 1..boxNumber] ++ ["\n"] ++ ["\(moves[t]), " | t in 0..maxtime]
+%output ["{\(box), \(t), (\(boxes[box, t, 0]), \(boxes[box, t, 1]))}, " | t in 0..maxtime, box in 1..boxNumber] ++ ["\n"] ++ ["\(moves[t]), " | t in 0..maxtime-1]
 
+output ["move(\(box), \(direction(t)), \(l), \(t)) " | t in 0..maxtime-1, box = moves[t], l = abs(boxes[moves[t], t+1, 0] - boxes[moves[t], t, 0] + boxes[moves[t], t+1, 1] - boxes[moves[t], t, 1])];
 
-% moved (i, x, y) -> (i, x', y):
-%   freepath(x,y, x",y) /\ dist(x', x") = count(boxes in x..x") /\ free(pushposition) /\ forall(b2 in x..x")
-% forse funziona anche per mosse multiple
-
-% box in x..x": xNew = L-M+1+K 
-% L = |x - x'|
-% M = |box[x] -x|
-% K = count(x..box[x])  
-
+function string: direction(0..maxtime-1: t) = 
+    if (fix(boxes[moves[t], t+1, 0] - boxes[moves[t], t, 0]) > 0)
+    then
+        "ea"
+    elseif (fix(boxes[moves[t], t+1, 0] - boxes[moves[t], t, 0]) < 0)
+    then
+        "we"
+    elseif (fix(boxes[moves[t], t+1, 1] - boxes[moves[t], t, 1]) > 0)
+    then
+        "no"
+    else
+        "so"
+    endif;
