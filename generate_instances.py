@@ -1,3 +1,5 @@
+import json
+import os
 import random
 
 def easy_instance(limit=5):
@@ -69,9 +71,63 @@ def check_overlappings(x, y, boxes, drawers):
 
     return res != []
 
+
+def save_instance(instance, name, path):
+
+    m, n, boxes, drawers = instance
+
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+    file_name = os.path.join(path, name)
+
+    with open(file_name+'.lp', 'w') as lp:
+        
+        lp.write(f'#const m={m}.\n')
+        lp.write(f'#const n={n}.\n')
+        
+        for box in boxes:
+            lp.write(f'box({box[0]},{box[1]}).\n')
+
+        for drawer in drawers:
+            lp.write(f'drawer({drawer[0]},{drawer[1]}).\n')
+
+        lp.close()
+
+    with open(file_name+'.mzn', 'w') as mzn:
+
+        mzn.write(f'm={m};\n')
+        mzn.write(f'n={n};\n')
+        mzn.write(f'boxNumber = {len(boxes)};\n')
+        mzn.write(f'drawerNumber = {len(drawers)};\n')
+
+        for i, box in zip(range(len(boxes)), boxes):
+            mzn.write(
+                f'constraint boxes[{i+1}, 0, 0] = {box[0]} /\ boxes[{i+1}, 0, 1] = {box[1]}\n'
+            )
+
+        drawer_array = '|'
+        for drawer in drawers:
+            drawer_array += str(drawer[0]) + ',' + str(drawer[1]) + '|'
+
+        mzn.write(
+            f'drawers = array2d(1..drawerNumber, 0..1, [{drawer_array}]);\n'
+        )
     
+        mzn.close()
+
+    json_dict = {
+        'm': m,
+        'n': n,
+        'boxes': boxes,
+        'drawers': drawers
+    }
+    with open(file_name+'.json', 'w') as json_file:
+        json.dump(json_dict, json_file)
+
 def main():
-    print(easy_instance())
+    ins = easy_instance()
+    save_instance(ins, 'a', 'ins')
 
 if __name__ == '__main__':
     main()
