@@ -5,10 +5,10 @@ import random
 def easy_instance(limit=5):
     
     random.seed()
-    m = abs(int(limit * random.gauss(0, 0.5))) + limit
-    n = abs(int(limit * random.gauss(0, 0.5))) + limit
+    m = limit - random.randint(-1, 1) 
+    n = limit - random.randint(-1, 1)
 
-    drawer_number = random.randint(0, int(min(m, n)/2))
+    drawer_number = random.randint(0, 1)
     drawers = []
 
     for i in range(drawer_number):
@@ -17,6 +17,33 @@ def easy_instance(limit=5):
             drawers.append(pos)
 
     box_number = random.randint(1, int(drawer_number+limit/2))
+    box_number = min(box_number, 3)
+    boxes = []
+
+    for i in range(box_number):
+        pos = place_boxes(m, n, boxes, drawers)
+        boxes.append(pos)
+
+    return (m,n,boxes, drawers)
+
+def hard_instance(limit=7):
+    
+    random.seed()
+    m = abs(int(limit * random.gauss(0.5, 0.5))) + int(limit/2)
+    n = abs(int(limit * random.gauss(0.5, 0.5))) + int(limit/2)
+
+    m = min(m, 8)
+    n = min(n, 8)
+
+    drawer_number = random.randint(3, int(min(m, n)/2+2))
+    drawers = []
+
+    for i in range(drawer_number):
+        pos = place_drawers(m, n, drawers)
+        if pos is not None:
+            drawers.append(pos)
+
+    box_number = random.randint(2, int(drawer_number+limit/2)+1)
     boxes = []
 
     for i in range(box_number):
@@ -27,12 +54,12 @@ def easy_instance(limit=5):
 
 def place_boxes(m, n, placed_boxes, placed_drawers):
 
-    box_x = random.randint(0, m-1)
-    box_y = random.randint(0, n-1)
+    box_x = random.randint(1, m-1)
+    box_y = random.randint(1, n-1)
 
     while check_overlappings(box_x, box_y, placed_boxes, placed_drawers):
-        box_x = random.randint(0, m-1)
-        box_y = random.randint(0, n-1)
+        box_x = random.randint(1, m-1)
+        box_y = random.randint(1, n-1)
     
     return (box_x, box_y)
 
@@ -86,8 +113,8 @@ def save_instance(instance, name, path):
         lp.write(f'#const m={m}.\n')
         lp.write(f'#const n={n}.\n')
         
-        for box in boxes:
-            lp.write(f'box({box[0]},{box[1]}).\n')
+        for i, box in zip(range(len(boxes)), boxes):
+            lp.write(f'box({i+1},{box[0]},{box[1]}).\n')
 
         for drawer in drawers:
             lp.write(f'drawer({drawer[0]},{drawer[1]}).\n')
@@ -103,12 +130,14 @@ def save_instance(instance, name, path):
 
         for i, box in zip(range(len(boxes)), boxes):
             mzn.write(
-                f'constraint boxes[{i+1}, 0, 0] = {box[0]} /\ boxes[{i+1}, 0, 1] = {box[1]}\n'
+                f'constraint boxes[{i+1}, 0, 0] = {box[0]} /\ boxes[{i+1}, 0, 1] = {box[1]};\n'
             )
 
-        drawer_array = '|'
-        for drawer in drawers:
-            drawer_array += str(drawer[0]) + ',' + str(drawer[1]) + '|'
+        drawer_array = ''
+        if len(drawers) > 0:
+            drawer_array += '|'
+            for drawer in drawers:
+                drawer_array += str(drawer[0]) + ',' + str(drawer[1]) + '|'
 
         mzn.write(
             f'drawers = array2d(1..drawerNumber, 0..1, [{drawer_array}]);\n'
@@ -127,7 +156,9 @@ def save_instance(instance, name, path):
 
 def main():
     ins = easy_instance()
-    save_instance(ins, 'a', 'ins')
+    save_instance(ins, 'a', 'Instances/Easy')
+    ins = hard_instance()
+    save_instance(ins, 'a', 'Instances/Medium')
 
 if __name__ == '__main__':
     main()

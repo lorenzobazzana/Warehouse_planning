@@ -1,21 +1,13 @@
 %#include <incmode>.
 %#program time(maxTime).
 #const maxtime=10.
-#const m=6.
-#const n=5.
+
 coordX(0..m-1).
 coordY(0..n-1).
 
 direction(no;so;ea;we).
 
 time(0..maxtime).
-
-box(1, 1, 1).
-box(2, 3, 1).
-box(3, 4, 1).
-
-drawer(2, 3).
-drawer(0,2).
 
 boxIn(I, X, Y, 0) :- cell(X, Y), box(I, X, Y).
 
@@ -117,6 +109,13 @@ dest(XNew, YNew, X, Y, L, we) :- west(XNew, YNew, X, Y, L).
 
 % (X1, Y1) e' la posizione per spingere una cassa in (X2, Y2) nella direzione D (ovvero, (X2, Y2) deve essere nella direzione D rispetto a (X1, Y1)) e a distanza 1
 pushPosition(XPush, YPush, X, Y, D) :- dest(X, Y, XPush, YPush, 1, D), XPush != m.
+
+
+% Domain knowledge constraints, added to stop search early in case of trivially unsatisfiable instances ---------------------------
+% Exit cannot be blocked
+:- coveredByDrawer(m-1, n-1).
+% There cannot be a box covering the push position to the exit
+:- coveredByDrawer(m-2, n-1).
 
 
 % Unfinished: la box I all'istante di tempo Ti non e' in posizione finale

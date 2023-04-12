@@ -1,0 +1,7 @@
+m=5;
+n=6;
+boxNumber=2;
+drawerNumber=1;
+constraint boxes[1,0,0] = 2 /\ boxes[1,0,1] = 1;
+constraint boxes[2,0,0] = 2 /\ boxes[2,0,1] = 4;
+drawers = array2d(1..drawerNumber, 0..1, [|2,2|]);

@@ -1,33 +1,15 @@
+include "Instances/Easy/ins2/ins2.mzn";
 int: m;
 int: n;
-m=6;
-n=5;
-
 int: maxtime;
-maxtime = 6;
 int: boxNumber;
-boxNumber = 2;
 int: drawerNumber;
-drawerNumber = 2;
+
 array[1..boxNumber, 0..maxtime, 0..1] of var 0..max(m,n): boxes;
 array[1..drawerNumber, 0..1] of 0..max(m,n): drawers;
-drawers = array2d(1..drawerNumber, 0..1, [|0, 2 | 4,2 |]);
-
 array[0..maxtime-1] of var 0..boxNumber: moves;
-
-
-constraint
-  boxes[1, 0, 0] = 1 /\
-  boxes[1, 0, 1] = 1;
-  
-constraint
-  boxes[2, 0, 0] = 4 /\
-  boxes[2, 0, 1] = 1;
-
-%constraint
-%  boxes[3, 0, 0] = 4 /\
-%  boxes[3, 0, 1] = 1;
     
+maxtime = 7;
 
 predicate freePath(1..boxNumber: movedBox, var 0..max(m,n): start, var 0..max(m,n): end, 0..maxtime: time, 0..1: coord) = 
     if coord = 0
@@ -149,7 +131,6 @@ constraint
   )
 ;
 
-solve satisfy;
 
 % Non possono esserci due scatole nella stessa posizione
 constraint
@@ -210,11 +191,33 @@ constraint
     )
 ;
 
-    
 
-%output ["{\(box), \(t), (\(boxes[box, t, 0]), \(boxes[box, t, 1]))}, " | t in 0..maxtime, box in 1..boxNumber] ++ ["\n"] ++ ["\(moves[t]), " | t in 0..maxtime-1]
+% Domain knowledge constraints, added to stop search early in case of trivially unsatisfiable instances ---------------------------
+% Exit cannot be blocked
+constraint
+    not exists(drawer in 1..drawerNumber)(
+        drawers[drawerNumber, 0] = m-2 /\
+        drawers[drawerNumber, 1] = n-2
+    )
+;
+% There cannot be a box covering the push position to the exit
+constraint
+    not exists(drawer in 1..drawerNumber)(
+        drawers[drawerNumber, 0] = m-3 /\
+        drawers[drawerNumber, 1] = n-2
+    )
+;
 
-output ["move(\(box), \(direction(t)), \(l), \(t)) " | t in 0..maxtime-1, box = moves[t], l = abs(boxes[moves[t], t+1, 0] - boxes[moves[t], t, 0] + boxes[moves[t], t+1, 1] - boxes[moves[t], t, 1])];
+
+var int: movesByTime = sum(t in 0..maxtime-1)(moves[t] != 0);
+
+%solve satisfy;
+solve minimize movesByTime;
+
+%output ["{\(box), \(t), (\(boxes[box, t, 0]), \(boxes[box, t, 1]))}, " | t in 0..maxtime, box in 1..boxNumber] ++ ["\n"] ++ ["\(moves[t]), " | t in 0..maxtime-1];
+
+output ["move(\(box), \(direction(t)), \(l), \(t)) " | t in 0..maxtime-1, box = moves[t], l = abs(boxes[moves[t], t+1, 0] - boxes[moves[t], t, 0] + boxes[moves[t], t+1, 1] - boxes[moves[t], t, 1]) where fix(moves[t]) != 0];
+
 
 function string: direction(0..maxtime-1: t) = 
     if (fix(boxes[moves[t], t+1, 0] - boxes[moves[t], t, 0]) > 0)
