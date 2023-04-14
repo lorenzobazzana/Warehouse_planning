@@ -123,7 +123,8 @@ unfinished(I, Ti) :- time(Ti), not boxIn(I, X, Y, Ti), box(I, _, _), X = m, Y = 
 % Non puo' essere che al tempo maxTime esista una box in posizione non finale
 :- unfinished(I, maxtime), box(I, _, _).
 
-requiredMoves(M) :- M = #sum{T:move(I, D, L, T)}.
+requiredMoves(M) :- M = #count{T:move(I, D, L, T)}.
+:- time(Ti), time(Ti+1), move(_,_,_, Ti+1), not move(_,_,_,Ti), Ti < maxtime.
 #minimize {M:requiredMoves(M)}.
 
 %#show boxIn/4.
@@ -131,3 +132,4 @@ requiredMoves(M) :- M = #sum{T:move(I, D, L, T)}.
 %#show validMultipleMoves/4.
 %#show collateralMove/4.
 #show move/4.
+
