@@ -1,6 +1,7 @@
 import json
 import os
 import random
+import sys
 
 def easy_instance(limit=5):
     
@@ -27,6 +28,31 @@ def easy_instance(limit=5):
 
     return (m,n,time, boxes, drawers)
 
+def medium_instance(limit=6):
+    
+    random.seed()
+    m = limit - random.randint(0, 1) 
+    n = limit - random.randint(0, 1)
+    time = 10
+
+    drawer_number = random.randint(1, 3)
+    drawers = []
+
+    for i in range(drawer_number):
+        pos = place_drawers(m, n, drawers)
+        if pos is not None:
+            drawers.append(pos)
+
+    box_number = random.randint(1, int(drawer_number+limit/2))
+    box_number = min(box_number, 3)
+    boxes = []
+
+    for i in range(box_number):
+        pos = place_boxes(m, n, boxes, drawers)
+        boxes.append(pos)
+
+    return (m,n,time, boxes, drawers)
+
 def hard_instance(limit=7):
     
     random.seed()
@@ -34,8 +60,8 @@ def hard_instance(limit=7):
     n = abs(int(limit * random.gauss(0.5, 0.5))) + int(limit/2)
     time = 15
 
-    m = min(m, 8)
-    n = min(n, 8)
+    m = min(m, limit)
+    n = min(n, limit)
 
     drawer_number = random.randint(3, int(min(m, n)/2+2))
     drawers = []
@@ -160,10 +186,28 @@ def save_instance(instance, name, path):
         json.dump(json_dict, json_file)
 
 def main():
-    ins = easy_instance()
-    save_instance(ins, 'a', 'Instances/Easy')
-    ins = hard_instance()
-    save_instance(ins, 'a', 'Instances/Medium')
+
+    help_msg = 'Usage: python generate_instances.py (easy|medium|hard) filename [-p path]' 
+    if len(sys.argv <=2 ):
+        print(help_msg)
+        return 1
+    
+    filename = sys.argv[2]
+    path = sys.argv[4] if '-p' in sys.argv else '.'
+
+    if 'easy' in sys.argv:
+        ins = easy_instance()
+    elif 'medium' in sys.argv:
+        ins = medium_instance()
+    elif 'hard' in sys.argv:
+        ins = hard_instance
+    else:
+        print(help_msg)
+        return 1
+    
+    save_instance(ins, filename, path)
+
+    return 0
 
 if __name__ == '__main__':
     main()
