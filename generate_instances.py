@@ -188,7 +188,7 @@ def save_instance(instance, name, path):
 def main():
 
     help_msg = 'Usage: python generate_instances.py (easy|medium|hard) filename [-p path]' 
-    if len(sys.argv <=2 ):
+    if len(sys.argv) <= 2:
         print(help_msg)
         return 1
     

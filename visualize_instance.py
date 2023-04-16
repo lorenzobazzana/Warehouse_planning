@@ -12,14 +12,14 @@ def print_instance(instance):
     print(f'boxes:{boxes}')
     print(f'drawers:{drawers}')
 
-    print('  +', end='')
+    print('   +', end='')
     for j in range(m):
         print('--', end='')
     print('+')
 
     for i in range(n-1, -1, -1):
         
-        print(f'{i} |', end='')
+        print(f'{i:<3d}|', end='')
         
         for j in range(m):
             print(object_on_cell(j, i, boxes, drawers), end='')
@@ -30,12 +30,12 @@ def print_instance(instance):
             print('|')
 
 
-    print('  +', end='')
+    print('   +', end='')
     for j in range(m):
         print('--', end='')
     print('+')
 
-    print('   ', end='')
+    print('    ', end='')
     for j in range(m):
         print(f'{j} ', end='')
     
