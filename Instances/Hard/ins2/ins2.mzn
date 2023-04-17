@@ -1,0 +1,12 @@
+m=9;
+n=5;
+maxtime=15;
+boxNumber = 6;
+drawerNumber = 4;
+constraint boxes[1, 0, 0] = 8 /\ boxes[1, 0, 1] = 1;
+constraint boxes[2, 0, 0] = 6 /\ boxes[2, 0, 1] = 3;
+constraint boxes[3, 0, 0] = 7 /\ boxes[3, 0, 1] = 4;
+constraint boxes[4, 0, 0] = 5 /\ boxes[4, 0, 1] = 4;
+constraint boxes[5, 0, 0] = 1 /\ boxes[5, 0, 1] = 2;
+constraint boxes[6, 0, 0] = 8 /\ boxes[6, 0, 1] = 2;
+drawers = array2d(1..drawerNumber, 0..1, [|2,3|6,0|4,0|0,3|]);
