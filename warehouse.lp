@@ -1,7 +1,3 @@
-%#include <incmode>.
-%#program time(maxTime).
-#const maxtime=10.
-
 coordX(0..m-1).
 coordY(0..n-1).
 
@@ -46,6 +42,7 @@ validMultipleMoves(I, D, L, Ti) :- box(I, _, _), direction(D),
                                     dest(X1, Y1, X, Y, L, D), % (XNew, YNew) e' destinazione di uno spostamento lungo L+K
                                     dest(XMax, YMax, X1, Y1, K, D),
                                     dest(XMax, YMax, X, Y, LMax, D), % Idealmente vogliamo LMax = L+K
+                                    not notFree(XMax, YMax, Ti),
                                     LMax = L+K,
                                     %conto le scatole nella stessa direzione (davanti a quella che sposto)
                                     K = #count{I2:boxIn(I2, X2, Y2, Ti), I2 != I, dest(XMax, YMax, X2, Y2, L2, D), L2 < LMax}.
@@ -132,4 +129,3 @@ requiredMoves(M) :- M = #count{T:move(I, D, L, T)}.
 %#show validMultipleMoves/4.
 %#show collateralMove/4.
 #show move/4.
-

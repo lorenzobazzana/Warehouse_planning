@@ -1,5 +1,6 @@
 m=5;
 n=4;
+maxtime=10;
 boxNumber = 3;
 drawerNumber = 1;
 constraint boxes[1, 0, 0] = 1 /\ boxes[1, 0, 1] = 1;

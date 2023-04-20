@@ -28,7 +28,7 @@ def easy_instance(limit=5):
 
     return (m,n,time, boxes, drawers)
 
-def medium_instance(limit=6):
+def medium_instance(limit=8):
     
     random.seed()
     m = limit - random.randint(0, 1) 
@@ -53,7 +53,7 @@ def medium_instance(limit=6):
 
     return (m,n,time, boxes, drawers)
 
-def hard_instance(limit=7):
+def hard_instance(limit=9):
     
     random.seed()
     m = abs(int(limit * random.gauss(0.5, 0.5))) + int(limit/2)
@@ -200,7 +200,7 @@ def main():
     elif 'medium' in sys.argv:
         ins = medium_instance()
     elif 'hard' in sys.argv:
-        ins = hard_instance
+        ins = hard_instance()
     else:
         print(help_msg)
         return 1

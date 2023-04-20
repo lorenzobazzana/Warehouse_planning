@@ -1,4 +1,4 @@
-include "Instances/Easy/ins2/ins2.mzn";
+include "Instances/Easy/ins6/ins6.mzn";
 int: m;
 int: n;
 int: maxtime;
@@ -9,7 +9,6 @@ array[1..boxNumber, 0..maxtime, 0..1] of var 0..max(m,n): boxes;
 array[1..drawerNumber, 0..1] of 0..max(m,n): drawers;
 array[0..maxtime-1] of var 0..boxNumber: moves;
     
-maxtime = 7;
 
 predicate freePath(1..boxNumber: movedBox, var 0..max(m,n): start, var 0..max(m,n): end, 0..maxtime: time, 0..1: coord) = 
     if coord = 0
@@ -208,11 +207,16 @@ constraint
     )
 ;
 
+constraint
+    not exists(t in 0..maxtime-2)(
+        moves[t+1] != 0 /\ moves[t] = 0
+    )
+;
 
-var int: movesByTime = sum(t in 0..maxtime-1)(moves[t] != 0);
+var int: moveNumber = count(t in 0..maxtime-1)(moves[t] != 0);
 
 %solve satisfy;
-solve minimize movesByTime;
+solve minimize moveNumber;
 
 %output ["{\(box), \(t), (\(boxes[box, t, 0]), \(boxes[box, t, 1]))}, " | t in 0..maxtime, box in 1..boxNumber] ++ ["\n"] ++ ["\(moves[t]), " | t in 0..maxtime-1];
 
