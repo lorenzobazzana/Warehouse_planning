@@ -8,5 +8,5 @@ box(4,1,3).
 box(5,5,4).
 box(6,3,4).
 drawer(4,2).
-drawer(4,0).
+drawer(0,4).
 drawer(2,0).

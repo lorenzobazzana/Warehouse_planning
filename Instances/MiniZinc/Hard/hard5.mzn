@@ -1,7 +1,7 @@
 m=7;
 n=6;
 maxtime=15;
-boxNumber = 9;
+boxNumber = 6;
 drawerNumber = 3;
 constraint boxes[1, 0, 0] = 6 /\ boxes[1, 0, 1] = 1;
 constraint boxes[2, 0, 0] = 3 /\ boxes[2, 0, 1] = 3;
