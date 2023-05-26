@@ -1,0 +1,3 @@
+*.lp linguist-language=Answer Set Programming
+*.mzn linguist-language=MiniZinc
+
