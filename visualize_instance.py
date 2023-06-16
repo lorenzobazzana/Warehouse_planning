@@ -1,6 +1,10 @@
 import json
 import sys
 
+######
+# Code for instance visualization, using some basic ASCII characters
+######
+
 def print_instance(instance):
     m = instance['m']
     n = instance['n']
@@ -58,6 +62,7 @@ def object_on_cell(x, y, boxes, drawers):
 def main():
 
     try: 
+        # Input file must be in JSON format
         file = sys.argv[1]
         f = open(file)
         instance = json.load(f)

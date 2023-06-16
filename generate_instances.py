@@ -3,6 +3,12 @@ import os
 import random
 import sys
 
+######
+#---- Code for generating a valid random instance, with no overlappings
+#---- Satisfiability is not guaranteed
+#---- Instance difficulty is defined arbitrarily, based on the size of the warehouse and the number of boxes and drawers
+######
+
 def easy_instance(limit=5):
     
     random.seed()
@@ -80,6 +86,8 @@ def hard_instance(limit=9):
 
     return (m, n, time, boxes, drawers)
 
+# Tries to place a box in a position (x,y), 0<=x<m-1 and 0<=y<=n-1
+# No position is returned if all attempts result in an overlapping
 def place_boxes(m, n, placed_boxes, placed_drawers):
 
     box_x = random.randint(1, m-1)
@@ -91,12 +99,14 @@ def place_boxes(m, n, placed_boxes, placed_drawers):
     
     return (box_x, box_y)
 
-
+# Tries to place a drawer in a position (x,y), 0<=x<m-1 and 0<=y<=n-1
+# No position is returned if all attempts result in an overlapping
 def place_drawers(m, n, placed_drawers, attempts = 5):
 
     drawer_x = random.randint(0, m-2)
     drawer_y = random.randint(0, n-2)
 
+    # When placing boxes we need to check more possible overlapping positions
     while (check_overlappings(drawer_x, drawer_y, None, placed_drawers) or
            check_overlappings(drawer_x+1, drawer_y, None, placed_drawers) or
            check_overlappings(drawer_x, drawer_y+1, None, placed_drawers) or 
@@ -110,13 +120,16 @@ def place_drawers(m, n, placed_drawers, attempts = 5):
     
     return (drawer_x, drawer_y)
 
+# Checks whether a box in position (x,y) overlaps with another box or a drawer
 def check_overlappings(x, y, boxes, drawers):
     
     res = []
 
+    # Filter boxes that do not overlap
     if boxes is not None:
         res += list(filter(lambda el: el[0] == x and el[1] == y, boxes))
 
+    # Expand all drawers positions and filter all drawers that do not overlap
     if drawers is not None:
         occupied_cells = drawers.copy()
         occupied_cells += list(map(lambda el: (el[0]+1, el[1]), drawers))
@@ -124,8 +137,12 @@ def check_overlappings(x, y, boxes, drawers):
         occupied_cells += list(map(lambda el: (el[0]+1, el[1]+1), drawers))
         res += list(filter(lambda el: el[0] == x and el[1] == y, occupied_cells))
 
+    # If res is not empty there are overlappings
     return res != []
 
+
+# Saves an instance in the specified path, using the specified filename
+# It creates an ASP, a MiniZinc and a JSON file
 
 def save_instance(instance, name, path):
 
@@ -185,6 +202,9 @@ def save_instance(instance, name, path):
     with open(file_name+'.json', 'w') as json_file:
         json.dump(json_dict, json_file)
 
+
+# Main function takes as parameters the difficulty of the instance to generate and the base filename to be created
+# If -p is specified, the following parameter is treated as the destination path
 def main():
 
     help_msg = 'Usage: python generate_instances.py (easy|medium|hard) filename [-p path]' 
