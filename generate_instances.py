@@ -142,7 +142,7 @@ def check_overlappings(x, y, boxes, drawers):
 
 
 # Saves an instance in the specified path, using the specified filename
-# It creates an ASP, a MiniZinc and a JSON file
+# It creates an ASP (.lp), a MiniZinc data (.dzn) and a JSON file
 
 def save_instance(instance, name, path):
 
@@ -167,7 +167,7 @@ def save_instance(instance, name, path):
 
         lp.close()
 
-    with open(file_name+'.mzn', 'w') as mzn:
+    with open(file_name+'.dzn', 'w') as mzn:
 
         mzn.write(f'm={m};\n')
         mzn.write(f'n={n};\n')
@@ -207,7 +207,7 @@ def save_instance(instance, name, path):
 # If -p is specified, the following parameter is treated as the destination path
 def main():
 
-    help_msg = 'Usage: python generate_instances.py (easy|medium|hard) filename [-p path]' 
+    help_msg = 'Usage: python3 generate_instances.py (easy|medium|hard) filename [-p path]' 
     if len(sys.argv) <= 2:
         print(help_msg)
         return 1
