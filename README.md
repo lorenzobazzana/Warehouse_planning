@@ -64,7 +64,7 @@ Instance examples to use as syntax reference:
 
 JSON instance files can be visualized using the `visualize_instance.py`. This is useful to have a more concrete picture of the instance.
 
-|![Instance visualization](visualization.png)|
+|![Instance visualization](Images/visualization.png)|
 |:--:|
 
 
@@ -91,4 +91,6 @@ The [MiniZinc](https://www.minizinc.org) model (`warehouse.mzn`) can be run usin
 ```
     include "path/to/instance.dzn";
 ```
-You can then run the selected solver.
+You can then run with the selected solver.
+
+![MiniZinc execution](Images/minizinc.gif)
